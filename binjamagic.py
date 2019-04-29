@@ -1,32 +1,41 @@
 # binjamagic.py
 import gc
+import binaryninja
+
 from binaryninja import scriptingprovider
 
 class BinjaMagic(object):
     def __init__(self, ip):
         self.shell = ip
-        obj = [o for o in gc.get_objects() if isinstance(o, scriptingprovider.PythonScriptingInstance.InterpreterThread)]
+        obj = [o for o in gc.get_objects() if isinstance(
+            o, scriptingprovider.PythonScriptingInstance.InterpreterThread)]
         if len(obj) == 1:
 
             self.bip = obj[0]
         else:
-            raise Exception("Couldn't find scriptingprovider. Sure you are in the right kernel?")
+            raise Exception(
+                "Couldn't find scriptingprovider. Sure you are in the right kernel?")
 
+        self._init_ns()
+
+    def _init_ns(self):
+        self.shell.user_ns['binaryninja'] = binaryninja
 
     def _update_ns(self):
         """Updates the namespace of the running kernel with the binja magic variables"""
+        bip = self.bip
         self.shell.user_ns.update({
-            'write_at_cursor': self.bip.write_at_cursor,
-            'get_selected_data': self.bip.get_selected_data,
-            'bv': self.bip.current_view,
-            'current_view': self.bip.current_view,
-            'current_function': self.bip.current_func,
-            'current_basic_block': self.bip.current_block,
-            'current_address': self.bip.current_addr,
-            'here': self.bip.current_selection_begin,
-            'current_selection': (self.bip.current_selection_begin, self.bip.current_selection_end),
+            'write_at_cursor': bip.write_at_cursor,
+            'get_selected_data': bip.get_selected_data,
+            'bv': bip.current_view,
+            'current_view': bip.current_view,
+            'current_function': bip.current_func,
+            'current_basic_block': bip.current_block,
+            'current_address': bip.current_addr,
+            'here': bip.current_selection_begin,
+            'current_selection': (bip.current_selection_begin, bip.current_selection_end),
         })
-        if self.bip.current_func is None:
+        if bip.current_func is None:
             self.shell.user_ns['current_llil'] = None
             self.shell.user_ns['current_mlil'] = None
         else:
@@ -39,11 +48,8 @@ class BinjaMagic(object):
     def post_execute(self):
         return
 
-
     def shell_initialized(self):
         self._update_ns()
-
-
 
 
 def load_ipython_extension(ip):
